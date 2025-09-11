@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Beispielskript zur Generierung linearer Gleichungen.
+
+Dieses Skript bleibt als einfaches, historisches Beispiel erhalten. Die
+empfohlene und weiterentwickelte Variante befindet sich in
+``gleichungs_generator.py``.
+
+Ausführung::
+
+    python examples/gleichungsgenerator.py
+"""
 from fractions import Fraction
 from dataclasses import dataclass
 from random import randint, choice, seed, shuffle

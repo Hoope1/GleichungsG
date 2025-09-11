@@ -1,5 +1,7 @@
 # SPEC-1-Gleichungs-Generator
 
+Version: 1.0 (2025-09-11)
+
 ## Background
 
 Für Teilnehmende soll ein automatischer Generator lineare Gleichungen **mit genau einer Unbekannten x** erzeugen. Die Aufgaben decken einen **steigenden Schwierigkeitsgrad** ab – von einfachen Umformungen bis zu komplexen Bruchgleichungen. Ziel ist es, **lösbare**, teils **optisch unübersichtliche** Aufgaben zu erstellen, deren **Lösungen häufig als Brüche** enden. Zusätzlich wird ein **Arbeitsblatt (ohne Lösungen)** und ein **Lösungsblatt (mit Rechenweg)** als **.docx** ausgegeben.
@@ -18,6 +20,7 @@ Für Teilnehmende soll ein automatischer Generator lineare Gleichungen **mit gen
   5. **Bruchgleichungen**: von einfach (`(1/2)x=5`) bis schwer (verschachtelte Produkte/Quotienten).
 * **Lösungen bevorzugt als Brüche** (kein Dezimalzwang); Rechenweg im Lösungsblatt **schrittweise** nachvollziehbar.
 * **Word-Export**: Zwei Dateien `.docx`: Arbeitsblatt (Aufgaben, mit Leerraum), Lösungsblatt (nummerierte Lösungen + Rechenweg).
+* **DOCX-Gleichungen**: Darstellung erfolgt aktuell als reiner Text (`python-docx`). Ein optionaler Renderer für native Word-Formeln (OMML/MathML) kann später ergänzt werden.
 * **Sprache**: Deutsch (Aufgaben & Rechenwege).
 
 ### Should-have
@@ -161,3 +164,7 @@ visual_complexity: mixed # oder "clean"
 seed: 12345
 format: { mixed_number: false }
 ```
+
+## Changelog
+
+* **1.0 (2025-09-11)** – Erste veröffentlichte Spezifikation.
