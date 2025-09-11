@@ -333,72 +333,61 @@ def to_harder_mixed_parenthesis(x_val: Fraction) -> DisplayEquation:
     return DisplayEquation(text=txt, canonical=canon, kind="schwer")
 
 def to_fraction_equation(x_val: Fraction) -> DisplayEquation:
+    """Erzeuge eine lineare Bruchgleichung mit der Ziel-Lösung ``x_val``.
+
+    Die Koeffizienten werden so gewählt, dass bei der Kreuzmultiplikation
+    keine \(x^2\)-Terme entstehen und ``x_val`` tatsächlich eine Lösung ist.
     """
-    Erzeuge Bruchgleichungen. Strategie: Baue zunächst ax+b=cx+d,
-    hebe das Ganze in Zähler/Nenner, z.B.:
-       (u1*x+v1)/(w1*x+z1) = (u2*x+v2)/(w2*x+z2)
-    vermeide w*x+z = 0 bei der Lösung.
-    """
-    # Grundlinearformen:
-    def lin_pair() -> Tuple[Fraction, Fraction]:
-        return Fraction(rnd_nonzero(-6, 6)), Fraction(randint(-10, 10))
 
-    u1, v1 = lin_pair()
-    w1, z1 = lin_pair()
-    u2, v2 = lin_pair()
-    w2, z2 = lin_pair()
-
-    # Achte darauf, dass Nenner an der Lösung x_val nicht 0 werden:
-    def eval_lin(p: Fraction, q: Fraction, x: Fraction) -> Fraction:
-        return p * x + q
-
-    # Falls gefährlich, neu würfeln
-    for _ in range(50):
-        if eval_lin(w1, z1, x_val) != 0 and eval_lin(w2, z2, x_val) != 0:
-            break
-        w1, z1 = lin_pair()
-        w2, z2 = lin_pair()
-
-    # Kanonisch äquivalent: (u1 x + v1)/(w1 x + z1) = (u2 x + v2)/(w2 x + z2)
-    # Kreuzmultiplikation fürs kanonische ax+b=cx+d:
-    # (u1 x + v1)*(w2 x + z2) = (u2 x + v2)*(w1 x + z1)
-    # -> auf x-terme und Konstanten sammeln:
-    # Links expandieren:
-    aL = u1 * w2            # x*x -> x^2 (soll vermeiden!) -> Für Linearität müssen wir w2 oder u1 klein wählen.
-    bL = u1 * z2 + v1 * w2  # x
-    cL = v1 * z2            # konst.
-
-    aR = u2 * w1
-    bR = u2 * z1 + v2 * w1
-    cR = v2 * z1
-
-    # Problem: die obige Rohform ist quadratisch. Wir wollen linear!
-    # Lösung: Erzwinge u1*w2 == u2*w1, damit x^2-Terme verschwinden.
-    aR = aL  # damit x^2 wegkürzt
-    # Jetzt verbleibt linear: (bL - bR) x + (cL - cR) = 0 -> (bL-bR) x = (cR - cL)
-    # Daraus erhalten wir eine kanonische lineare Form:
-    A = bL - bR
-    B = cL - cR
-    # Wir möchten A != 0
-    if A == 0:
-        # Falls passiert, justieren:
-        A = Fraction(rnd_nonzero(-12, 12))
-    # kanonisch: A x + B = 0  ->  A x + B = 0x + 0
-    canon = LinearEquation(A, B, Fraction(0), Fraction(0))
-
-    # Darstellung als echte Bruchgleichung (Text):
     def fmt_lin(px: Fraction, q: Fraction) -> str:
-        parts = []
+        parts: List[str] = []
         if px != 0:
             parts.append(format_coeff_times_x(px))
         if q != 0:
             parts.append(fmt_term(q, with_sign=(len(parts) > 0)))
         return tidy_spaces(" ".join(parts)) if parts else "0"
 
-    left_text = f"({fmt_lin(u1, v1)})/({fmt_lin(w1, z1)})"
-    right_text = f"({fmt_lin(u2, v2)})/({fmt_lin(w2, z2)})"
-    txt = f"{left_text} = {right_text}"
-    return DisplayEquation(text=txt, canonical=canon, kind="brueche")
+    while True:
+        # Proportionale Koeffizienten für x, damit sich x^2 nach
+        # Kreuzmultiplikation wegkürzt: u1*w2 == u2*w1
+        u1 = Fraction(rnd_nonzero(-6, 6))
+        w1 = Fraction(rnd_nonzero(-6, 6))
+        k = Fraction(rnd_nonzero(-5, 5))
+        u2 = u1 * k
+        w2 = w1 * k
+
+        v1 = Fraction(randint(-10, 10))
+        z1 = Fraction(randint(-10, 10))
+        if w1 * x_val + z1 == 0:
+            continue
+
+        z2 = Fraction(randint(-10, 10))
+        if w2 * x_val + z2 == 0:
+            continue
+
+        denom = w1 * x_val + z1
+        if denom == 0:
+            continue
+
+        # Bestimme v2 so, dass x_val Lösung wird
+        v2 = ((u1 * z2 + v1 * w2 - u2 * z1) * x_val + v1 * z2) / denom
+
+        # Kanonische Form A x + B = 0
+        bL = u1 * z2 + v1 * w2
+        bR = u2 * z1 + v2 * w1
+        cL = v1 * z2
+        cR = v2 * z1
+        A = bL - bR
+        B = cL - cR
+        if A == 0:
+            continue
+
+        canon = LinearEquation(A, B, Fraction(0), Fraction(0))
+
+        left_text = f"({fmt_lin(u1, v1)})/({fmt_lin(w1, z1)})"
+        right_text = f"({fmt_lin(u2, v2)})/({fmt_lin(w2, z2)})"
+        txt = f"{left_text} = {right_text}"
+        return DisplayEquation(text=txt, canonical=canon, kind="brueche")
 
 # ---------------------- Generierung pro Kategorie -----------------------------
 
