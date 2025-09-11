@@ -66,7 +66,6 @@ def expr_to_str(expr: sp.Expr) -> str:
     s = s.replace("*x", "x")
     s = s.replace("*", "")
     s = s.replace(" 1x", " x")
-    s = s.replace(" 1", " 1")
     s = s.replace("-1x", "-x")
     s = s.replace("+ -", "- ")
     return s

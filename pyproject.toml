@@ -1,0 +1,12 @@
+[project]
+name = "gleichungen"
+version = "0.1.0"
+description = "Generator für lineare Gleichungen"
+requires-python = ">=3.10"
+dependencies = [
+    "sympy~=1.12",
+    "python-docx~=1.1",
+]
+
+[project.scripts]
+gleichungen = "gleichungs_generator:main"

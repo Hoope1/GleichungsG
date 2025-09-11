@@ -1,4 +1,8 @@
-## Installation unter Windows 11 (PowerShell)
+## Installation
+
+Voraussetzung ist Python 3.10 oder neuer.
+
+### Windows 11 (PowerShell)
 
 1. PowerShell öffnen und in das Projektverzeichnis wechseln.
 2. Virtuelle Umgebung erstellen und aktivieren:
@@ -11,18 +15,36 @@
    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
    ```
    aus und versuche es erneut.
-3. Abhängigkeiten installieren (falls eine `requirements.txt` vorhanden ist):
+3. Abhängigkeiten installieren:
    ```powershell
    pip install -r requirements.txt
    ```
 4. Generator starten:
    ```powershell
-   python .\gleichungsgenerator.py
+   python .\gleichungs_generator.py
    ```
+
+### Linux / macOS (Bash)
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python gleichungs_generator.py
+```
+
+### Alternative Installation mit `pipx`
+
+```bash
+pipx install --python python3.10 .
+gleichungen
+```
 
 ---
 
 Ich brauche für meine Teilnehmer soetwas wie einen "gleichungs-generator".
+Das Hauptskript heißt `gleichungs_generator.py`. Eine frühere, vereinfachte
+Variante liegt weiterhin unter `examples/gleichungsgenerator.py`.
 
 Nur eine unbekannte und zwar "x".
 
@@ -39,9 +61,9 @@ Dann die leichten Beispiele die so gestaltet sind:
 
 Dann mittlere Beispiele die eine Klammer haben, entweder plus vor der klammer, oder ein minus vor der klammer, oder ein Mal vor einer Klammer, das aber nicht immer sichtbar sein muss! z.B.:
 
-4+(2x-4)=4x+7...(plus vor der Klammer)
-3x-3=12-(x-7)...(Minus vor der klammer)
-13(2x-7)=12-4x...(Multiplikation vor der klammer)
+4+(2x-4)=4x+7 (Plus vor der Klammer)
+3x-3=12-(x-7) (Minus vor der Klammer)
+13(2x-7)=12-4x (Multiplikation vor der Klammer)
 
 Dann ein bisschen schwerere Beispiele, wo diese Klammerarten gemischt werden:
 13(2x-7)=12-(x-7)+(2x-4)
@@ -313,3 +335,17 @@ Das Skript soll:
   * `loesungsblatt.docx` mit allen Lösungen + Rechenweg
 
 ---
+
+## Verpackung & Tests
+
+Das Projekt kann über `pip` oder `pipx` installiert werden. Für lokale Tests
+steht ein einfaches `pytest`-Setup zur Verfügung:
+
+```bash
+pip install -r requirements.txt
+pytest
+```
+
+## Lizenz
+
+Veröffentlicht unter der [MIT-Lizenz](LICENSE).
