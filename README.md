@@ -1,3 +1,27 @@
+## Installation unter Windows 11 (PowerShell)
+
+1. PowerShell öffnen und in das Projektverzeichnis wechseln.
+2. Virtuelle Umgebung erstellen und aktivieren:
+   ```powershell
+   python -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   ```
+   Falls die Aktivierung wegen der Ausführungsrichtlinien scheitert, führe einmal:
+   ```powershell
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+   ```
+   aus und versuche es erneut.
+3. Abhängigkeiten installieren (falls eine `requirements.txt` vorhanden ist):
+   ```powershell
+   pip install -r requirements.txt
+   ```
+4. Generator starten:
+   ```powershell
+   python .\gleichungsgenerator.py
+   ```
+
+---
+
 Ich brauche für meine Teilnehmer soetwas wie einen "gleichungs-generator".
 
 Nur eine unbekannte und zwar "x".
