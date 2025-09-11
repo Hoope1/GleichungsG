@@ -116,6 +116,19 @@ class Equation:
     excluded: Set[Fraction] = field(default_factory=set)
 
 
+@dataclass
+class SolveStep:
+    description_de: str
+    lhs: sp.Expr
+    rhs: sp.Expr
+
+
+@dataclass
+class Problem:
+    equation: Equation
+    steps: List[SolveStep]
+
+
 # ---------------------------------------------------------------------------
 # Numerische Leitplanken
 # ---------------------------------------------------------------------------
@@ -323,18 +336,15 @@ def canonical_key(eq: Equation) -> str:
 # ---------------------------------------------------------------------------
 
 
-def solve_steps(eq: Equation, cfg: Dict) -> List[str]:
-    steps: List[str] = []
-    if eq.excluded:
-        ex = ", ".join(nice_frac(v) for v in sorted(eq.excluded))
-        steps.append(f"Ausschlusswerte: x ≠ {ex}")
-    steps.append(f"Ausgangsgleichung: {eq.text}")
+def solve_steps(eq: Equation, cfg: Dict) -> List[SolveStep]:
+    steps: List[SolveStep] = []
+    steps.append(SolveStep("Ausgangsgleichung", eq.sympy_eq.lhs, eq.sympy_eq.rhs))
     lhs = sp.expand(eq.sympy_eq.lhs)
     rhs = sp.expand(eq.sympy_eq.rhs)
     if not (_expr_ok(lhs) and _expr_ok(rhs)):
         raise ValueError("Zahlenlimit überschritten")
     if lhs != eq.sympy_eq.lhs or rhs != eq.sympy_eq.rhs:
-        steps.append(f"Klammern auflösen: {expr_to_str(lhs)} = {expr_to_str(rhs)}")
+        steps.append(SolveStep("Klammern auflösen", lhs, rhs))
     lhs = sp.together(lhs)
     rhs = sp.together(rhs)
     if not (_expr_ok(lhs) and _expr_ok(rhs)):
@@ -348,12 +358,14 @@ def solve_steps(eq: Equation, cfg: Dict) -> List[str]:
         if not (_expr_ok(lhs) and _expr_ok(rhs)):
             raise ValueError("Zahlenlimit überschritten")
         steps.append(
-            f"Mit {expr_to_str(lcm)} multiplizieren: {expr_to_str(lhs)} = {expr_to_str(rhs)}",
+            SolveStep(
+                f"Mit dem Hauptnenner {expr_to_str(lcm)} multiplizieren", lhs, rhs
+            )
         )
     expr = sp.expand(lhs - rhs)
     if not _expr_ok(expr):
         raise ValueError("Zahlenlimit überschritten")
-    steps.append(f"Alle Terme auf eine Seite: {expr_to_str(expr)} = 0")
+    steps.append(SolveStep("Alle Terme auf eine Seite bringen", expr, 0))
     poly = sp.Poly(expr, x)
     A = Fraction(poly.all_coeffs()[0])
     B = Fraction(poly.all_coeffs()[1])
@@ -363,16 +375,23 @@ def solve_steps(eq: Equation, cfg: Dict) -> List[str]:
         B = Fraction(B.numerator // g, B.denominator)
     if not (_fraction_ok(A) and _fraction_ok(B)):
         raise ValueError("Zahlenlimit überschritten")
-    steps.append(f"{nice_frac(A)}x = {nice_frac(-B)}")
+    steps.append(SolveStep("Nach x zusammenfassen", A * x, -B))
     xval = -B / A
     if not _fraction_ok(xval):
         raise ValueError("Zahlenlimit überschritten")
-    steps.append(f"x = {nice_frac(xval)}")
+    steps.append(
+        SolveStep(
+            "Durch den Koeffizienten teilen",
+            x,
+            sp.Rational(xval.numerator, xval.denominator),
+        )
+    )
     if cfg["solutions"]["improper_and_mixed"] and xval.denominator != 1:
         whole = xval.numerator // xval.denominator
         rest = abs(xval.numerator) % xval.denominator
         if whole != 0 and rest != 0:
-            steps.append(f"x = {whole} {rest}/{xval.denominator}")
+            mixed = sp.Integer(whole) + sp.Rational(rest, xval.denominator)
+            steps.append(SolveStep("Als gemischte Zahl", x, mixed))
     return steps
 
 
@@ -410,8 +429,14 @@ def render_loesungen(eqs: List[Equation], path: str, cfg: Dict):
         doc.add_heading(f"Level {level[1]}", level=2)
         for e in block:
             doc.add_paragraph(f"Aufgabe {idx}: {e.text}")
+            if e.excluded:
+                ex = ", ".join(nice_frac(v) for v in sorted(e.excluded))
+                p = doc.add_paragraph(f"• Ausschlusswerte: x ≠ {ex}")
+                p.runs[0].font.size = Pt(11)
             for s in solve_steps(e, cfg):
-                p = doc.add_paragraph(f"• {s}")
+                p = doc.add_paragraph(
+                    f"• {s.description_de}: {expr_to_str(s.lhs)} = {expr_to_str(s.rhs)}"
+                )
                 p.runs[0].font.size = Pt(11)
             idx += 1
             doc.add_paragraph(" ")
