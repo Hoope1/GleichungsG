@@ -6,6 +6,7 @@ Die Implementierung erzeugt zufällige Aufgaben der Level L1–L5 und
 speichert sie als Arbeits- und Lösungsblatt im DOCX‑Format.  Sie folgt
 den Vorgaben aus AGENTS.md in kompakter Form.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -185,9 +186,10 @@ def build_L4(rng: random.Random, sol: Fraction, cfg: Dict) -> Equation:
     u = (a * (m * sol + n) + b - (c * sol + d) - (p - (q * sol + r))) / s - t * sol
     lhs = a * (m * x + n) + b - (c * x + d)
     rhs = p - (q * x + r) + s * (t * x + u)
-    text = f"{a}({m}x + {n}) + {b} - ({c}x + {d}) = {p} - ({q}x + {r}) + {s}({t}x + {u})"
+    text = (
+        f"{a}({m}x + {n}) + {b} - ({c}x + {d}) = {p} - ({q}x + {r}) + {s}({t}x + {u})"
+    )
     return Equation("L4", sp.Eq(lhs, rhs, evaluate=False), text, sol)
-
 
 
 def build_L5(rng: random.Random, sol: Fraction, cfg: Dict) -> Equation:
@@ -205,7 +207,11 @@ def build_L5(rng: random.Random, sol: Fraction, cfg: Dict) -> Equation:
             if b.denominator != 1 or c * sol + d == 0:
                 continue
             lhs = (a * x + int(b)) / (c * x + d)
-            rhs = sp.Integer(k) if k.denominator == 1 else sp.Rational(k.numerator, k.denominator)
+            rhs = (
+                sp.Integer(k)
+                if k.denominator == 1
+                else sp.Rational(k.numerator, k.denominator)
+            )
             text = f"({a}x + {int(b)})/({c}x + {d}) = {nice_frac(k)}"
             excluded = {Fraction(-d, c)}
             return Equation("L5", sp.Eq(lhs, rhs, evaluate=False), text, sol, excluded)
@@ -218,11 +224,11 @@ def build_L5(rng: random.Random, sol: Fraction, cfg: Dict) -> Equation:
             d2 = rng.randint(mn, mx)
             b2 = rng.randint(mn, mx)
             num = (a2 * sol + b2) * (c1 * sol + d1)
-            den = (c2 * sol + d2)
+            den = c2 * sol + d2
             if den == 0 or c1 * sol + d1 == 0:
                 continue
             b1 = num / den - a1 * sol
-            if isinstance(b1, Fraction) or getattr(b1, 'denominator', 1) != 1:
+            if isinstance(b1, Fraction) or getattr(b1, "denominator", 1) != 1:
                 b1 = Fraction(b1).limit_denominator()
             if b1.denominator != 1:
                 continue
@@ -231,6 +237,8 @@ def build_L5(rng: random.Random, sol: Fraction, cfg: Dict) -> Equation:
             text = f"({a1}x + {int(b1)})/({c1}x + {d1}) = ({a2}x + {b2})/({c2}x + {d2})"
             excluded = {Fraction(-d1, c1), Fraction(-d2, c2)}
             return Equation("L5", sp.Eq(lhs, rhs, evaluate=False), text, sol, excluded)
+
+
 BUILDERS = {
     "L1": build_L1,
     "L2": build_L2,
@@ -244,7 +252,6 @@ BUILDERS = {
 # ---------------------------------------------------------------------------
 
 
-
 def validate(eq: Equation) -> bool:
     if not isinstance(eq.sympy_eq, sp.Equality):
         return False
@@ -256,9 +263,10 @@ def validate(eq: Equation) -> bool:
         return False
     if sp.simplify(sol_list[0] - eq.solution) != 0:
         return False
-    if any(sp.simplify(eq.sympy_eq.subs(x, ex)) == True for ex in eq.excluded):
+    if any(bool(sp.simplify(eq.sympy_eq.subs(x, ex))) for ex in eq.excluded):
         return False
     return True
+
 
 def canonical_key(eq: Equation) -> str:
     expr = sp.together(eq.sympy_eq.lhs - eq.sympy_eq.rhs)
@@ -288,7 +296,9 @@ def solve_steps(eq: Equation, cfg: Dict) -> List[str]:
     if lcm != 1:
         lhs = sp.simplify(lhs * lcm)
         rhs = sp.simplify(rhs * lcm)
-        steps.append(f"Mit {expr_to_str(lcm)} multiplizieren: {expr_to_str(lhs)} = {expr_to_str(rhs)}")
+        steps.append(
+            f"Mit {expr_to_str(lcm)} multiplizieren: {expr_to_str(lhs)} = {expr_to_str(rhs)}"
+        )
     expr = sp.expand(lhs - rhs)
     steps.append(f"Alle Terme auf eine Seite: {expr_to_str(expr)} = 0")
     poly = sp.Poly(expr, x)

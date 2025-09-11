@@ -10,3 +10,8 @@ dependencies = [
 
 [project.scripts]
 gleichungen = "gleichungs_generator:main"
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+extend-exclude = ["examples"]

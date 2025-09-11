@@ -1,5 +1,4 @@
 import random
-from fractions import Fraction
 import sympy as sp
 import sys
 from pathlib import Path
