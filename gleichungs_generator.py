@@ -10,6 +10,7 @@ den Vorgaben aus AGENTS.md in kompakter Form.
 from __future__ import annotations
 
 import argparse
+import math
 import random
 from dataclasses import dataclass, field
 from fractions import Fraction
@@ -24,6 +25,9 @@ x = sp.Symbol("x")
 # ---------------------------------------------------------------------------
 # Konfiguration
 # ---------------------------------------------------------------------------
+
+MAX_ABS = 120
+MAX_RESAMPLES = 200
 
 DEFAULT_CONFIG: Dict = {
     "seed": 0,
@@ -90,6 +94,14 @@ def poly_to_str(expr: sp.Expr) -> str:
     return " ".join(parts) if parts else "0"
 
 
+def _fraction_ok(fr: Fraction) -> bool:
+    return abs(fr.numerator) <= MAX_ABS and abs(fr.denominator) <= MAX_ABS
+
+
+def _expr_ok(expr: sp.Expr) -> bool:
+    return all(_fraction_ok(Fraction(atom)) for atom in expr.atoms(sp.Rational))
+
+
 # ---------------------------------------------------------------------------
 # Datenklassen
 # ---------------------------------------------------------------------------
@@ -102,6 +114,37 @@ class Equation:
     text: str
     solution: Fraction
     excluded: Set[Fraction] = field(default_factory=set)
+
+
+# ---------------------------------------------------------------------------
+# Numerische Leitplanken
+# ---------------------------------------------------------------------------
+
+
+def numeric_limits_ok(eq: Equation) -> bool:
+    if not _expr_ok(eq.sympy_eq.lhs) or not _expr_ok(eq.sympy_eq.rhs):
+        return False
+    expr = eq.sympy_eq.lhs - eq.sympy_eq.rhs
+    nums = [Fraction(atom) for atom in expr.atoms(sp.Rational)]
+    lcm_val = 1
+    for fr in nums:
+        lcm_val = math.lcm(lcm_val, fr.denominator)
+    if lcm_val > MAX_ABS:
+        return False
+    expr_int = sp.expand(expr * lcm_val)
+    if not _expr_ok(expr_int):
+        return False
+    poly = sp.Poly(expr_int, x)
+    coeffs = poly.all_coeffs()
+    A = int(coeffs[0]) if coeffs else 0
+    B = int(coeffs[1]) if len(coeffs) > 1 else 0
+    g = math.gcd(abs(A), abs(B))
+    if g:
+        A //= g
+        B //= g
+    if abs(A) > MAX_ABS or abs(B) > MAX_ABS:
+        return False
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -288,24 +331,42 @@ def solve_steps(eq: Equation, cfg: Dict) -> List[str]:
     steps.append(f"Ausgangsgleichung: {eq.text}")
     lhs = sp.expand(eq.sympy_eq.lhs)
     rhs = sp.expand(eq.sympy_eq.rhs)
+    if not (_expr_ok(lhs) and _expr_ok(rhs)):
+        raise ValueError("Zahlenlimit überschritten")
     if lhs != eq.sympy_eq.lhs or rhs != eq.sympy_eq.rhs:
         steps.append(f"Klammern auflösen: {expr_to_str(lhs)} = {expr_to_str(rhs)}")
     lhs = sp.together(lhs)
     rhs = sp.together(rhs)
+    if not (_expr_ok(lhs) and _expr_ok(rhs)):
+        raise ValueError("Zahlenlimit überschritten")
     lcm = sp.lcm(sp.denom(lhs), sp.denom(rhs))
     if lcm != 1:
+        if not _fraction_ok(Fraction(lcm)):
+            raise ValueError("Zahlenlimit überschritten")
         lhs = sp.simplify(lhs * lcm)
         rhs = sp.simplify(rhs * lcm)
+        if not (_expr_ok(lhs) and _expr_ok(rhs)):
+            raise ValueError("Zahlenlimit überschritten")
         steps.append(
-            f"Mit {expr_to_str(lcm)} multiplizieren: {expr_to_str(lhs)} = {expr_to_str(rhs)}"
+            f"Mit {expr_to_str(lcm)} multiplizieren: {expr_to_str(lhs)} = {expr_to_str(rhs)}",
         )
     expr = sp.expand(lhs - rhs)
+    if not _expr_ok(expr):
+        raise ValueError("Zahlenlimit überschritten")
     steps.append(f"Alle Terme auf eine Seite: {expr_to_str(expr)} = 0")
     poly = sp.Poly(expr, x)
     A = Fraction(poly.all_coeffs()[0])
     B = Fraction(poly.all_coeffs()[1])
+    g = math.gcd(abs(A.numerator), abs(B.numerator))
+    if g:
+        A = Fraction(A.numerator // g, A.denominator)
+        B = Fraction(B.numerator // g, B.denominator)
+    if not (_fraction_ok(A) and _fraction_ok(B)):
+        raise ValueError("Zahlenlimit überschritten")
     steps.append(f"{nice_frac(A)}x = {nice_frac(-B)}")
     xval = -B / A
+    if not _fraction_ok(xval):
+        raise ValueError("Zahlenlimit überschritten")
     steps.append(f"x = {nice_frac(xval)}")
     if cfg["solutions"]["improper_and_mixed"] and xval.denominator != 1:
         whole = xval.numerator // xval.denominator
@@ -370,16 +431,24 @@ def generate(cfg: Dict) -> List[Equation]:
         builder = BUILDERS[level]
         generated = 0
         while generated < count:
-            sol = sample_solution(rng, cfg)
-            eq = builder(rng, sol, cfg)
-            if not validate(eq):
-                continue
-            key = canonical_key(eq)
-            if key in seen:
-                continue
-            seen.add(key)
-            results.append(eq)
-            generated += 1
+            attempts = 0
+            while attempts < MAX_RESAMPLES:
+                sol = sample_solution(rng, cfg)
+                eq = builder(rng, sol, cfg)
+                if not validate(eq) or not numeric_limits_ok(eq):
+                    attempts += 1
+                    continue
+                key = canonical_key(eq)
+                if key in seen:
+                    attempts += 1
+                    continue
+                seen.add(key)
+                results.append(eq)
+                generated += 1
+                break
+            else:
+                # nach MAX_RESAMPLES ohne Erfolg: Aufgabe überspringen
+                attempts = 0
     return results
 
 
