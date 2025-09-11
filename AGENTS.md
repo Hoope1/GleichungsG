@@ -689,3 +689,14 @@ Zusatz
 1. **GCD-Normalisierung**: Nach dem Brüche-Beseitigen teile ich `A·x + B = 0` immer durch `gcd(|A|,|B|)`, damit alle sichtbaren Zahlen klein bleiben (und ≤ 120).
 
 3. **Fehlschläge**: Wenn nach **max. 200 Resamples** die Grenzen nicht einhaltbar sind, **überspringe** ich die Aufgabe und generiere neu, bis die Zielanzahl erreicht ist.
+
+## Entwicklungsrichtlinien
+
+Nach jeder Änderung am Code müssen die folgenden Prüfungen erfolgreich
+durchlaufen werden:
+
+```bash
+python -m ruff format --check .
+python -m ruff check .
+pytest
+```
