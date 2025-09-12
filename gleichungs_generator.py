@@ -77,6 +77,7 @@ def expr_to_str(expr: sp.Expr) -> str:
 
 
 def poly_to_str(expr: sp.Expr) -> str:
+    expr = _prepare_poly_expr(expr)
     poly = sp.Poly(expr, x)
     A = Fraction(poly.coeffs()[0])
     B = Fraction(poly.coeffs()[1]) if len(poly.coeffs()) > 1 else Fraction(0)
@@ -100,6 +101,20 @@ def _fraction_ok(fr: Fraction) -> bool:
 
 def _expr_ok(expr: sp.Expr) -> bool:
     return all(_fraction_ok(Fraction(atom)) for atom in expr.atoms(sp.Rational))
+
+
+def _prepare_poly_expr(expr: sp.Expr) -> sp.Expr:
+    expr = sp.together(expr)
+    den = sp.denom(expr)
+    if den != 1:
+        if not _expr_ok(den):
+            raise ValueError("Zahlenlimit überschritten")
+        expr = sp.expand(sp.together(expr * den))
+        if not _expr_ok(expr):
+            raise ValueError("Zahlenlimit überschritten")
+    else:
+        expr = sp.expand(expr)
+    return expr
 
 
 # ---------------------------------------------------------------------------
@@ -138,6 +153,10 @@ def numeric_limits_ok(eq: Equation) -> bool:
     if not _expr_ok(eq.sympy_eq.lhs) or not _expr_ok(eq.sympy_eq.rhs):
         return False
     expr = eq.sympy_eq.lhs - eq.sympy_eq.rhs
+    try:
+        expr = _prepare_poly_expr(expr)
+    except ValueError:
+        return False
     nums = [Fraction(atom) for atom in expr.atoms(sp.Rational)]
     lcm_val = 1
     for fr in nums:
@@ -365,6 +384,7 @@ def solve_steps(eq: Equation, cfg: Dict) -> List[SolveStep]:
     expr = sp.expand(lhs - rhs)
     if not _expr_ok(expr):
         raise ValueError("Zahlenlimit überschritten")
+    expr = _prepare_poly_expr(expr)
     steps.append(SolveStep("Alle Terme auf eine Seite bringen", expr, 0))
     poly = sp.Poly(expr, x)
     A = Fraction(poly.all_coeffs()[0])
