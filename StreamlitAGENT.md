@@ -692,81 +692,81 @@ Eine **lokale** Streamlit‑App (ohne Internetzugriff) für **Einzelperson‑Nut
 
 ### Seiten & Navigationsfluss
 
-1. **Start** – Kurzbeschreibung, Button „Neuen Satz generieren“.
-2. **Einstellungen** – Alle Generator‑Parameter: Level‑Anzahlen, Zufallssamen, Bruchquote, Numerische Leitplanken (≤ 120), Auswahl der **Difficulty‑Aufträge (D‑OPS)**, Darstellung (visual\_complexity), Ausgabeoptionen.
-3. **Vorschau** – Liste der generierten Aufgaben (Text/Unicode‑Math), wahlweise auch ausgewählte **Lösungsschritte** je Aufgabe ein-/ausblendbar; Ampel‑Checks (LCM≤120, Zahlen≤120, Eindeutigkeit).
-4. **Export** – Dateinamen/Pfade, Buttons „Arbeitsblatt.docx erzeugen“ / „Lösungsblatt.docx erzeugen“, Zusammenfassung (Anzahl Aufgaben, D‑OPS‑Verteilung), Log‑Panel.
-5. **Protokoll** – Übersichtsseite mit Validierungs‑Hinweisen, Ausschlusswerten und ggf. Resampling‑Zählern pro Aufgabe.
+1. [x] **Start** – Kurzbeschreibung, Button „Neuen Satz generieren“.
+2. [x] **Einstellungen** – Alle Generator‑Parameter: Level‑Anzahlen, Zufallssamen, Bruchquote, Numerische Leitplanken (≤ 120), Auswahl der **Difficulty‑Aufträge (D‑OPS)**, Darstellung (visual\_complexity), Ausgabeoptionen.
+3. [x] **Vorschau** – Liste der generierten Aufgaben (Text/Unicode‑Math), wahlweise auch ausgewählte **Lösungsschritte** je Aufgabe ein-/ausblendbar; Ampel‑Checks (LCM≤120, Zahlen≤120, Eindeutigkeit).
+4. [x] **Export** – Dateinamen/Pfade, Buttons „Arbeitsblatt.docx erzeugen“ / „Lösungsblatt.docx erzeugen“, Zusammenfassung (Anzahl Aufgaben, D‑OPS‑Verteilung), Log‑Panel.
+5. [x] **Protokoll** – Übersichtsseite mit Validierungs‑Hinweisen, Ausschlusswerten und ggf. Resampling‑Zählern pro Aufgabe.
 
 ### UI‑Bausteine (Seite „Einstellungen“)
 
 * **Konfiguration**
 
-  * Seed (Number Input)
-  * Anzahl je Level (Sliders L1..L5)
-  * Bruchquote *prefer\_fraction* (Slider 0.5–0.95)
-  * Darstellung: `visual_complexity` (Select: *mixed*, *clean*)
+  * [x] Seed (Number Input)
+  * [x] Anzahl je Level (Sliders L1..L5)
+  * [x] Bruchquote *prefer\_fraction* (Slider 0.5–0.95)
+  * [x] Darstellung: `visual_complexity` (Select: *mixed*, *clean*)
 * **Numerische Leitplanken (≤ 120)**
 
-  * Checkbox „Limit strikt erzwingen (alle Schritte)“ (Default **an**)
-  * Info‑Badge: Erklärung kgV‑Grenze (≤ 120) und automatisches Resampling
-  * Max. Resamples pro Aufgabe (Number Input, Default 200)
+  * [x] Checkbox „Limit strikt erzwingen (alle Schritte)“ (Default **an**)
+  * [x] Info‑Badge: Erklärung kgV‑Grenze (≤ 120) und automatisches Resampling
+  * [x] Max. Resamples pro Aufgabe (Number Input, Default 200)
 * **Difficulty‑Aufträge (D‑OPS)**
 
-  * Multi‑Select der 25 Ideen (Tooltips mit Kurzbeschreibung)
-  * Max. Kombinationen pro Aufgabe (Select: 1–3; Default 3)
-  * Prioritätsregel fest: {1,7,20} > {3,4,5,6,17,24} > Rest (readonly Hinweis)
+  * [x] Multi‑Select der 25 Ideen (Tooltips mit Kurzbeschreibung)
+  * [x] Max. Kombinationen pro Aufgabe (Select: 1–3; Default 3)
+  * [x] Prioritätsregel fest: {1,7,20} > {3,4,5,6,17,24} > Rest (readonly Hinweis)
 * **Bruch‑/Ausgabe‑Optionen**
 
-  * Lösungen im Lösungsblatt: „Unechter Bruch **und** gemischte Zahl“ (fest eingestellt)
-  * Dezimaldarstellung: ausgeschaltet (readonly Hinweis)
+  * [x] Lösungen im Lösungsblatt: „Unechter Bruch **und** gemischte Zahl“ (fest eingestellt)
+  * [x] Dezimaldarstellung: ausgeschaltet (readonly Hinweis)
 * **Dateien**
 
-  * Ausgabeverzeichnis (Folder Picker)
-  * Dateinamen (Text Inputs): `arbeitsblatt.docx`, `loesungsblatt.docx`
+  * [x] Ausgabeverzeichnis (Folder Picker)
+  * [x] Dateinamen (Text Inputs): `arbeitsblatt.docx`, `loesungsblatt.docx`
 * **Aktion**
 
-  * Primärbutton „Aufgabenset generieren“
+  * [x] Primärbutton „Aufgabenset generieren“
 
 ### Vorschau ohne Internet
 
 * **Rendering‑Modi** (umschaltbar):
 
-  1. *Unicode‑Pretty*: SymPy‑Pretty‑Print (Monospace), zuverlässig offline.
-  2. *PNG‑Schnappschuss*: Gleichungen als gerenderter Monotext in Bild (zur besseren Lesbarkeit, weiterhin offline).
-* Hinweis: Keine LaTeX/MJX‑CDN‑Nutzung. Word‑Formeln (OMML) werden **nur** im Export erzeugt.
+  1. [x] *Unicode‑Pretty*: SymPy‑Pretty‑Print (Monospace), zuverlässig offline.
+  2. [x] *PNG‑Schnappschuss*: Gleichungen als gerenderter Monotext in Bild (zur besseren Lesbarkeit, weiterhin offline).
+* [x] Hinweis: Keine LaTeX/MJX‑CDN‑Nutzung. Word‑Formeln (OMML) werden **nur** im Export erzeugt.
 
 ### Validierung & QA in der UI
 
 * Nach Generierung zeigt die Vorschau je Aufgabe **Badges**:
 
-  * **Linearität** (Grad 1), **Eindeutige Lösung**, **LCM≤120**, **Zahlengrenze≤120**.
-* Tooltip „Warum nicht akzeptiert?“ mit konkretem Prüfpunkt (z. B. kgV=132 → verworfen, resampled 3×).
-* Zusammenfassungs‑Karte: Anzahl akzeptierter Aufgaben, durchschnittliche Resamples, D‑OPS‑Häufigkeiten.
+  * [x] **Linearität** (Grad 1), **Eindeutige Lösung**, **LCM≤120**, **Zahlengrenze≤120**.
+* [ ] Tooltip „Warum nicht akzeptiert?“ mit konkretem Prüfpunkt (z. B. kgV=132 → verworfen, resampled 3×).
+* [ ] Zusammenfassungs‑Karte: Anzahl akzeptierter Aufgaben, durchschnittliche Resamples, D‑OPS‑Häufigkeiten.
 
 ### Zustand & Persistenz
 
-* `st.session_state` Schlüssel: `config`, `problems`, `preview_mode`, `logs`, `seed_used`.
-* Button „Konfiguration als JSON speichern/laden“ (lokal), um Sätze reproduzierbar zu erzeugen.
+* [x] `st.session_state` Schlüssel: `config`, `problems`, `preview_mode`, `logs`, `seed_used`.
+* [x] Button „Konfiguration als JSON speichern/laden“ (lokal), um Sätze reproduzierbar zu erzeugen.
 
 ### Offline‑Betrieb
 
-* **Keine** externen CSS/JS/Fonts. Streamlit‑Telemetry deaktiviert: `browser.gatherUsageStats: false` in `.streamlit/config.toml`.
-* Start im Offline‑Modus: `streamlit run app.py` (ohne Netzwerk erforderlich). App öffnet lokalen Browser auf `localhost`.
+* [x] **Keine** externen CSS/JS/Fonts. Streamlit‑Telemetry deaktiviert: `browser.gatherUsageStats: false` in `.streamlit/config.toml`.
+* [x] Start im Offline‑Modus: `streamlit run app.py` (ohne Netzwerk erforderlich). App öffnet lokalen Browser auf `localhost`.
 
 ### Fehlerfälle & UX
 
-* Wenn Zielanzahl nicht erreicht wird (wegen Limits): Hinweis‑Panel mit „Nächster Versuch“ Button (erneut generieren mit neuem Seed) und Liste der häufigsten Ablehnungsgründe.
-* Export‑Toast nach Erfolg mit Pfadangabe. Bei Schreibfehlern (z. B. Pfad) klarer Fehlerhinweis.
+* [x] Wenn Zielanzahl nicht erreicht wird (wegen Limits): Hinweis‑Panel mit „Nächster Versuch“ Button (erneut generieren mit neuem Seed) und Liste der häufigsten Ablehnungsgründe.
+* [x] Export‑Toast nach Erfolg mit Pfadangabe. Bei Schreibfehlern (z. B. Pfad) klarer Fehlerhinweis.
 
 ### Sicherheitsgeländer
 
-* Single‑User: Keine Uploads ins Netz, keine API‑Keys. Nur lokales Dateisystem.
-* Max. Aufgabenanzahl hart limitiert (z. B. 200) um Hänger durch massives Resampling zu vermeiden.
+* [x] Single‑User: Keine Uploads ins Netz, keine API‑Keys. Nur lokales Dateisystem.
+* [x] Max. Aufgabenanzahl hart limitiert (z. B. 200) um Hänger durch massives Resampling zu vermeiden.
 
 ### Testideen (manuell in der GUI)
 
-* Seeds testen (Reproduzierbarkeit).
-* D‑OPS‑Kombinationen 1/7/20 forcieren und prüfen, dass **kgV ≤ 120** bleibt.
-* Vorschau‑Modi vergleichen (Unicode vs. PNG).
-* DOCX öffnen und Formelqualität (OMML) verifizieren; Lösungen doppelt (unecht + gemischt) prüfen.
+* [ ] Seeds testen (Reproduzierbarkeit).
+* [ ] D‑OPS‑Kombinationen 1/7/20 forcieren und prüfen, dass **kgV ≤ 120** bleibt.
+* [ ] Vorschau‑Modi vergleichen (Unicode vs. PNG).
+* [ ] DOCX öffnen und Formelqualität (OMML) verifizieren; Lösungen doppelt (unecht + gemischt) prüfen.
