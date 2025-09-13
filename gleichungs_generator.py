@@ -723,15 +723,18 @@ def generate_equations(cfg: Dict) -> List[Problem]:
     rng = random.Random(cfg["seed"])
     problems: List[Problem] = []
     seen_keys: Set[str] = set()
+    max_resamples = cfg.get("max_resamples", MAX_RESAMPLES)
+    strict = cfg.get("strict_limits", True)
 
     # Level 1
     for i in range(cfg["counts"]["L1"]):
         attempts = 0
-        while attempts < MAX_RESAMPLES:
+        while attempts < max_resamples:
             sol = sample_solution(rng, cfg)
             eq = build_L1(rng, sol, cfg)
 
-            if validate(eq) and numeric_limits_ok(eq):
+            limits_ok = numeric_limits_ok(eq) if strict else True
+            if validate(eq) and limits_ok:
                 key = canonical_key(eq)
                 if key not in seen_keys:
                     seen_keys.add(key)
@@ -743,11 +746,12 @@ def generate_equations(cfg: Dict) -> List[Problem]:
     # Level 2
     for i in range(cfg["counts"]["L2"]):
         attempts = 0
-        while attempts < MAX_RESAMPLES:
+        while attempts < max_resamples:
             sol = sample_solution(rng, cfg)
             eq = build_L2(rng, sol, cfg)
 
-            if validate(eq) and numeric_limits_ok(eq):
+            limits_ok = numeric_limits_ok(eq) if strict else True
+            if validate(eq) and limits_ok:
                 key = canonical_key(eq)
                 if key not in seen_keys:
                     seen_keys.add(key)
@@ -760,11 +764,12 @@ def generate_equations(cfg: Dict) -> List[Problem]:
     patterns = ["plus", "plus", "minus", "minus", "times", "times"]
     for i, pattern in enumerate(patterns[: cfg["counts"]["L3"]]):
         attempts = 0
-        while attempts < MAX_RESAMPLES:
+        while attempts < max_resamples:
             sol = sample_solution(rng, cfg)
             eq = build_L3(rng, sol, cfg, i)
 
-            if validate(eq) and numeric_limits_ok(eq):
+            limits_ok = numeric_limits_ok(eq) if strict else True
+            if validate(eq) and limits_ok:
                 key = canonical_key(eq)
                 if key not in seen_keys:
                     seen_keys.add(key)
@@ -776,11 +781,12 @@ def generate_equations(cfg: Dict) -> List[Problem]:
     # Level 4
     for i in range(cfg["counts"]["L4"]):
         attempts = 0
-        while attempts < MAX_RESAMPLES:
+        while attempts < max_resamples:
             sol = sample_solution(rng, cfg)
             eq = build_L4(rng, sol, cfg)
 
-            if validate(eq) and numeric_limits_ok(eq):
+            limits_ok = numeric_limits_ok(eq) if strict else True
+            if validate(eq) and limits_ok:
                 key = canonical_key(eq)
                 if key not in seen_keys:
                     seen_keys.add(key)
@@ -792,11 +798,12 @@ def generate_equations(cfg: Dict) -> List[Problem]:
     # Level 5
     for i in range(cfg["counts"]["L5"]):
         attempts = 0
-        while attempts < MAX_RESAMPLES:
+        while attempts < max_resamples:
             sol = sample_solution(rng, cfg)
             eq = build_L5(rng, sol, cfg)
 
-            if validate(eq) and numeric_limits_ok(eq):
+            limits_ok = numeric_limits_ok(eq) if strict else True
+            if validate(eq) and limits_ok:
                 key = canonical_key(eq)
                 if key not in seen_keys:
                     seen_keys.add(key)
