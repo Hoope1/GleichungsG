@@ -33,9 +33,13 @@ Voraussetzung ist Python 3.10 oder neuer.
    ```powershell
    pip install -r requirements.txt
    ```
-4. Generator starten:
+4. Generator starten (CLI):
    ```powershell
    python .\gleichungs_generator.py
+   ```
+   oder die Streamlit-Oberfläche:
+   ```powershell
+   streamlit run app.py
    ```
 
 ### Linux / macOS (Bash)
@@ -44,7 +48,10 @@ Voraussetzung ist Python 3.10 oder neuer.
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+# CLI-Version
 python gleichungs_generator.py
+# oder Streamlit-GUI
+streamlit run app.py
 ```
 
 ## Verwendung
@@ -66,6 +73,16 @@ python gleichungs_generator.py --visual clean
 # Mixed Visual Mode (implizites Mal, Standard)
 python gleichungs_generator.py --visual mixed
 ```
+
+### Streamlit GUI
+
+Eine grafische Oberfläche kann lokal im Browser gestartet werden:
+
+```bash
+streamlit run app.py
+```
+
+Die App öffnet sich auf `http://localhost:8501` und benötigt keinen Internetzugang.
 
 ## Schwierigkeitslevel
 
