@@ -6,11 +6,10 @@ import json
 import math
 from io import BytesIO
 from pathlib import Path
-from typing import List
 
 import streamlit as st
-from PIL import Image, ImageDraw, ImageFont
 import sympy as sp
+from PIL import Image, ImageDraw, ImageFont
 
 from gleichungs_generator import (
     DEFAULT_CONFIG,
@@ -35,7 +34,7 @@ def lcm_leq_limit(eq: Equation, limit: int = MAX_ABS) -> tuple[bool, int]:
     """Prüft ob kgV aller Nenner ≤ limit ist."""
     expr = eq.sympy_eq.lhs - eq.sympy_eq.rhs
     expr_together = sp.together(expr)
-    denominators: List[int] = []
+    denominators: list[int] = []
     for term in sp.Add.make_args(expr_together):
         _, denom = sp.fraction(term)
         if denom != 1:
@@ -261,7 +260,7 @@ if page == "Einstellungen":
 
 if page == "Vorschau":
     st.title("Vorschau")
-    problems: List[Problem] = st.session_state.get("problems", [])
+    problems: list[Problem] = st.session_state.get("problems", [])
     if not problems:
         st.info("Keine Aufgaben generiert.")
     else:
@@ -281,7 +280,8 @@ if page == "Vorschau":
         for p in problems:
             dops_counter.update(p.dops)
         st.info(
-            f"Akzeptiert: {total} | Ø Resamples: {avg_res:.2f} | D-OPS: {dict(dops_counter)}"
+            f"Akzeptiert: {total} | Ø Resamples: {avg_res:.2f} | "
+            f"D-OPS: {dict(dops_counter)}"
         )
         for i, prob in enumerate(problems, 1):
             st.subheader(f"Aufgabe {i}")
@@ -303,9 +303,12 @@ if page == "Vorschau":
                 st.caption(f"Resamples: {prob.resamples}")
             if st.checkbox("Lösungsschritte anzeigen", key=f"steps_{i}"):
                 for step in prob.steps:
-                    st.write(
-                        f"- {step.description_de}: {beautify_equation(step.lhs, step.rhs, st.session_state['config']['visual_complexity'])}"
+                    equation = beautify_equation(
+                        step.lhs,
+                        step.rhs,
+                        st.session_state["config"]["visual_complexity"],
                     )
+                    st.write(f"- {step.description_de}: {equation}")
 
 # ---------------------------------------------------------------------------
 # Export
@@ -313,7 +316,7 @@ if page == "Vorschau":
 
 if page == "Export":
     st.title("Export")
-    problems: List[Problem] = st.session_state.get("problems", [])
+    problems: list[Problem] = st.session_state.get("problems", [])
     cfg = st.session_state.get("config", {})
     if not problems:
         st.info("Keine Aufgaben zum Export.")

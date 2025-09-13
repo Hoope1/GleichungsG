@@ -1,10 +1,11 @@
 import random
-import sympy as sp
 import sys
 from pathlib import Path
 
+import sympy as sp
+
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-from gleichungs_generator import build_L1, DEFAULT_CONFIG, x, sample_solution
+from gleichungs_generator import DEFAULT_CONFIG, build_L1, sample_solution, x
 
 
 def test_build_L1_solution():
