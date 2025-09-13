@@ -1,5 +1,6 @@
-import sympy as sp
 from fractions import Fraction
+
+import sympy as sp
 
 from gleichungs_generator import Equation, numeric_limits_ok, x
 
