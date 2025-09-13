@@ -199,11 +199,30 @@ def numeric_limits_ok(eq: Equation) -> bool:
     expr_together = sp.together(expr)
 
     # Extrahiere alle Nenner
-    denominators = []
+    denominators: List[int] = []
     for term in sp.Add.make_args(expr_together):
         _, denom = sp.fraction(term)
-        if denom != 1:
-            denominators.append(int(denom))
+        if denom == 1:
+            continue
+
+        # Zerlege den Nenner in numerischen Faktor und symbolischen Rest.
+        coeff, rest = sp.factor(denom).as_coeff_Mul()
+        coeff = sp.Rational(coeff)
+        num, den = coeff.as_numer_denom()
+
+        # Sammle numerischen Faktor, falls vorhanden.
+        if abs(num) != 1:
+            denominators.append(abs(int(num)))
+        if den != 1:
+            denominators.append(int(den))
+
+        # Falls der symbolische Rest keine Variablen enthält, ist er rein numerisch
+        # und kann ebenfalls in das kgV einfließen.
+        if not rest.free_symbols and rest != 1:
+            try:
+                denominators.append(abs(int(rest)))
+            except Exception:  # pragma: no cover - sollte nicht passieren
+                pass
 
     if denominators:
         lcm_val = denominators[0]
@@ -214,12 +233,28 @@ def numeric_limits_ok(eq: Equation) -> bool:
 
     # Prüfe finale Koeffizienten nach Vereinfachung
     expr_simplified = sp.expand(sp.together(expr))
-    if expr_simplified.has(x):
-        poly = sp.Poly(expr_simplified, x)
+    num, den = sp.fraction(expr_simplified)
+    num = sp.expand(num)
+    if num.has(x):
+        poly = sp.Poly(num, x)
         coeffs = poly.all_coeffs()
         for c in coeffs:
             if abs(float(c)) > MAX_ABS:
                 return False
+    else:
+        if abs(float(num)) > MAX_ABS:
+            return False
+
+    if den != 1:
+        coeff, rest = sp.factor(den).as_coeff_Mul()
+        coeff = sp.Rational(coeff)
+        num_c, den_c = coeff.as_numer_denom()
+        if abs(num_c) > 1 and abs(float(num_c)) > MAX_ABS:
+            return False
+        if den_c != 1 and den_c > MAX_ABS:
+            return False
+        if not rest.free_symbols and rest != 1 and abs(float(rest)) > MAX_ABS:
+            return False
 
     return True
 

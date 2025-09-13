@@ -21,3 +21,8 @@ def test_numeric_limits_lcm_fail():
 def test_numeric_limits_coeff_fail():
     eq = make_eq(121 * x + 1, 0, Fraction(-1, 121))
     assert not numeric_limits_ok(eq)
+
+
+def test_numeric_limits_symbolic_denominator():
+    eq = make_eq(1 / (x + 2), 0, Fraction(0))
+    assert numeric_limits_ok(eq)
