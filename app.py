@@ -31,7 +31,7 @@ MAX_ABS = 120
 # ---------------------------------------------------------------------------
 
 
-def lcm_leq_limit(eq: Equation, limit: int = MAX_ABS) -> bool:
+def lcm_leq_limit(eq: Equation, limit: int = MAX_ABS) -> tuple[bool, int]:
     """Prüft ob kgV aller Nenner ≤ limit ist."""
     expr = eq.sympy_eq.lhs - eq.sympy_eq.rhs
     expr_together = sp.together(expr)
@@ -41,36 +41,42 @@ def lcm_leq_limit(eq: Equation, limit: int = MAX_ABS) -> bool:
         if denom != 1:
             denominators.append(int(denom))
     if not denominators:
-        return True
+        return True, 1
     lcm_val = denominators[0]
     for d in denominators[1:]:
         lcm_val = math.lcm(lcm_val, d)
-    return lcm_val <= limit
+    return lcm_val <= limit, lcm_val
 
 
-def numbers_leq_limit(eq: Equation, limit: int = MAX_ABS) -> bool:
+def numbers_leq_limit(eq: Equation, limit: int = MAX_ABS) -> tuple[bool, int]:
     """Prüft ob alle Zahlen ≤ limit sind."""
 
+    max_val = 0
+
     def _expr_ok(expr: sp.Expr) -> bool:
+        nonlocal max_val
         for atom in expr.atoms(sp.Rational):
             fr = sp.Rational(atom)
+            max_val = max(max_val, abs(fr.p), abs(fr.q))
             if abs(fr.p) > limit or abs(fr.q) > limit:
                 return False
         return True
 
     if not _expr_ok(eq.sympy_eq.lhs) or not _expr_ok(eq.sympy_eq.rhs):
-        return False
+        return False, int(max_val)
     lhs_exp = sp.expand(eq.sympy_eq.lhs)
     rhs_exp = sp.expand(eq.sympy_eq.rhs)
     if not _expr_ok(lhs_exp) or not _expr_ok(rhs_exp):
-        return False
+        return False, int(max_val)
     expr = sp.expand(sp.together(eq.sympy_eq.lhs - eq.sympy_eq.rhs))
     if expr.has(x):
         poly = sp.Poly(expr, x)
         for c in poly.all_coeffs():
-            if abs(float(c)) > limit:
-                return False
-    return True
+            c_val = abs(float(c))
+            max_val = max(max_val, c_val)
+            if c_val > limit:
+                return False, int(max_val)
+    return True, int(max_val)
 
 
 def equation_to_unicode(eq: Equation) -> str:
@@ -84,7 +90,10 @@ def equation_to_unicode(eq: Equation) -> str:
 def equation_to_png(eq: Equation) -> bytes:
     txt = equation_to_unicode(eq)
     font = ImageFont.load_default()
-    width, height = font.getsize_multiline(txt)
+    dummy = Image.new("RGB", (1, 1))
+    d1 = ImageDraw.Draw(dummy)
+    bbox = d1.multiline_textbbox((0, 0), txt, font=font)
+    width, height = bbox[2] - bbox[0], bbox[3] - bbox[1]
     img = Image.new("RGB", (width + 10, height + 10), "white")
     draw = ImageDraw.Draw(img)
     draw.multiline_text((5, 5), txt, fill="black", font=font)
@@ -93,19 +102,20 @@ def equation_to_png(eq: Equation) -> bytes:
     return buf.getvalue()
 
 
-def problem_checks(prob: Problem) -> dict:
+def problem_checks(prob: Problem) -> dict[str, tuple[bool, str]]:
     eq = prob.equation
     expr = sp.expand(eq.sympy_eq.lhs - eq.sympy_eq.rhs)
     linear = sp.degree(expr, x) == 1
     unique = validate(eq)
-    lcm_ok = lcm_leq_limit(eq)
-    numbers_ok = numbers_leq_limit(eq)
-    return {
-        "Linearität": linear,
-        "Eindeutige Lösung": unique,
-        "LCM≤120": lcm_ok,
-        "Zahlengrenze≤120": numbers_ok,
+    lcm_ok, lcm_val = lcm_leq_limit(eq)
+    numbers_ok, max_val = numbers_leq_limit(eq)
+    checks: dict[str, tuple[bool, str]] = {
+        "Linearität": (linear, "" if linear else "Grad≠1"),
+        "Eindeutige Lösung": (unique, "" if unique else "Keine eindeutige Lösung"),
+        "LCM≤120": (lcm_ok, "" if lcm_ok else f"kgV={lcm_val}"),
+        "Zahlengrenze≤120": (numbers_ok, "" if numbers_ok else f"max={max_val}"),
     }
+    return checks
 
 
 # ---------------------------------------------------------------------------
@@ -235,6 +245,8 @@ if page == "Einstellungen":
                         "id": i,
                         "equation": p.equation.text,
                         "excluded": [str(e) for e in p.equation.excluded],
+                        "resamples": p.resamples,
+                        "dops": ",".join(p.dops),
                     }
                 )
             st.session_state["logs"] = logs
@@ -261,6 +273,16 @@ if page == "Vorschau":
             if x == "unicode"
             else "PNG-Schnappschuss",
         )
+        total = len(problems)
+        avg_res = sum(p.resamples for p in problems) / total if total else 0
+        from collections import Counter
+
+        dops_counter: Counter[str] = Counter()
+        for p in problems:
+            dops_counter.update(p.dops)
+        st.info(
+            f"Akzeptiert: {total} | Ø Resamples: {avg_res:.2f} | D-OPS: {dict(dops_counter)}"
+        )
         for i, prob in enumerate(problems, 1):
             st.subheader(f"Aufgabe {i}")
             if st.session_state["preview_mode"] == "unicode":
@@ -268,9 +290,17 @@ if page == "Vorschau":
             else:
                 st.image(equation_to_png(prob.equation))
             checks = problem_checks(prob)
-            st.markdown(
-                " ".join(["✅" + k if v else "❌" + k for k, v in checks.items()])
-            )
+            parts = []
+            for name, (ok, reason) in checks.items():
+                title = reason
+                icon = "✅" if ok else "❌"
+                if not ok and prob.resamples:
+                    title = (title + f"; resampled {prob.resamples}×").strip(";")
+                span = f"<span title='{title}'>{icon}{name}</span>"
+                parts.append(span)
+            st.markdown(" ".join(parts), unsafe_allow_html=True)
+            if prob.resamples:
+                st.caption(f"Resamples: {prob.resamples}")
             if st.checkbox("Lösungsschritte anzeigen", key=f"steps_{i}"):
                 for step in prob.steps:
                     st.write(

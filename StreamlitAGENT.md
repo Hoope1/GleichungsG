@@ -741,8 +741,8 @@ Eine **lokale** Streamlit‑App (ohne Internetzugriff) für **Einzelperson‑Nut
 * Nach Generierung zeigt die Vorschau je Aufgabe **Badges**:
 
   * [x] **Linearität** (Grad 1), **Eindeutige Lösung**, **LCM≤120**, **Zahlengrenze≤120**.
-* [ ] Tooltip „Warum nicht akzeptiert?“ mit konkretem Prüfpunkt (z. B. kgV=132 → verworfen, resampled 3×).
-* [ ] Zusammenfassungs‑Karte: Anzahl akzeptierter Aufgaben, durchschnittliche Resamples, D‑OPS‑Häufigkeiten.
+* [x] Tooltip „Warum nicht akzeptiert?“ mit konkretem Prüfpunkt (z. B. kgV=132 → verworfen, resampled 3×).
+* [x] Zusammenfassungs‑Karte: Anzahl akzeptierter Aufgaben, durchschnittliche Resamples, D‑OPS‑Häufigkeiten.
 
 ### Zustand & Persistenz
 
@@ -766,7 +766,7 @@ Eine **lokale** Streamlit‑App (ohne Internetzugriff) für **Einzelperson‑Nut
 
 ### Testideen (manuell in der GUI)
 
-* [ ] Seeds testen (Reproduzierbarkeit).
-* [ ] D‑OPS‑Kombinationen 1/7/20 forcieren und prüfen, dass **kgV ≤ 120** bleibt.
-* [ ] Vorschau‑Modi vergleichen (Unicode vs. PNG).
-* [ ] DOCX öffnen und Formelqualität (OMML) verifizieren; Lösungen doppelt (unecht + gemischt) prüfen.
+* [x] Seeds testen (Reproduzierbarkeit).
+* [x] D‑OPS‑Kombinationen 1/7/20 forcieren und prüfen, dass **kgV ≤ 120** bleibt.
+* [x] Vorschau‑Modi vergleichen (Unicode vs. PNG).
+* [x] DOCX öffnen und Formelqualität (OMML) verifizieren; Lösungen doppelt (unecht + gemischt) prüfen.

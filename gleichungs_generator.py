@@ -173,6 +173,8 @@ class Problem:
 
     equation: Equation
     steps: List[SolveStep]
+    resamples: int = 0
+    dops: List[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -739,7 +741,14 @@ def generate_equations(cfg: Dict) -> List[Problem]:
                 if key not in seen_keys:
                     seen_keys.add(key)
                     steps = solve_steps(eq, cfg)
-                    problems.append(Problem(eq, steps))
+                    problems.append(
+                        Problem(
+                            eq,
+                            steps,
+                            resamples=attempts,
+                            dops=eq.params.get("dops", []),
+                        )
+                    )
                     break
             attempts += 1
 
@@ -756,7 +765,14 @@ def generate_equations(cfg: Dict) -> List[Problem]:
                 if key not in seen_keys:
                     seen_keys.add(key)
                     steps = solve_steps(eq, cfg)
-                    problems.append(Problem(eq, steps))
+                    problems.append(
+                        Problem(
+                            eq,
+                            steps,
+                            resamples=attempts,
+                            dops=eq.params.get("dops", []),
+                        )
+                    )
                     break
             attempts += 1
 
@@ -774,7 +790,14 @@ def generate_equations(cfg: Dict) -> List[Problem]:
                 if key not in seen_keys:
                     seen_keys.add(key)
                     steps = solve_steps(eq, cfg)
-                    problems.append(Problem(eq, steps))
+                    problems.append(
+                        Problem(
+                            eq,
+                            steps,
+                            resamples=attempts,
+                            dops=eq.params.get("dops", []),
+                        )
+                    )
                     break
             attempts += 1
 
@@ -791,7 +814,14 @@ def generate_equations(cfg: Dict) -> List[Problem]:
                 if key not in seen_keys:
                     seen_keys.add(key)
                     steps = solve_steps(eq, cfg)
-                    problems.append(Problem(eq, steps))
+                    problems.append(
+                        Problem(
+                            eq,
+                            steps,
+                            resamples=attempts,
+                            dops=eq.params.get("dops", []),
+                        )
+                    )
                     break
             attempts += 1
 
@@ -808,7 +838,14 @@ def generate_equations(cfg: Dict) -> List[Problem]:
                 if key not in seen_keys:
                     seen_keys.add(key)
                     steps = solve_steps(eq, cfg)
-                    problems.append(Problem(eq, steps))
+                    problems.append(
+                        Problem(
+                            eq,
+                            steps,
+                            resamples=attempts,
+                            dops=eq.params.get("dops", []),
+                        )
+                    )
                     break
             attempts += 1
 
