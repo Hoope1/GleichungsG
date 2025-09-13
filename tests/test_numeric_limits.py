@@ -1,5 +1,6 @@
-import sympy as sp
 from fractions import Fraction
+
+import sympy as sp
 
 from gleichungs_generator import Equation, numeric_limits_ok, x
 
@@ -26,3 +27,18 @@ def test_numeric_limits_coeff_fail():
 def test_numeric_limits_symbolic_denominator():
     eq = make_eq(1 / (x + 2), 0, Fraction(0))
     assert numeric_limits_ok(eq)
+
+
+def test_numeric_limits_rational_denominator():
+    eq = make_eq(1 / (sp.Rational(2, 3) * (x + 1)), 0)
+    assert numeric_limits_ok(eq)
+
+
+def test_numeric_limits_non_integer_constant():
+    eq = make_eq(1 / sp.pi, 0)
+    assert numeric_limits_ok(eq)
+
+
+def test_numeric_limits_constant_fail():
+    eq = make_eq(60, -70)
+    assert not numeric_limits_ok(eq)
