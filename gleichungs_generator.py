@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Gleichungs-Generator für lineare Gleichungen mit einer Variablen.
 
 Generiert Aufgaben in 5 Schwierigkeitsleveln mit Lösungen als Brüche.
@@ -14,7 +13,6 @@ import random
 import re
 from dataclasses import dataclass, field
 from fractions import Fraction
-from typing import Dict, List, Set
 
 import sympy as sp
 from docx import Document
@@ -29,7 +27,7 @@ x = sp.Symbol("x")
 MAX_ABS = 120
 MAX_RESAMPLES = 200
 
-DEFAULT_CONFIG: Dict = {
+DEFAULT_CONFIG: dict = {
     "seed": 12345,
     "counts": {"L1": 4, "L2": 4, "L3": 6, "L4": 4, "L5": 5},
     "coeff_range": (-12, 12),
@@ -71,7 +69,7 @@ def fraction_to_mixed(fr: Fraction) -> str:
     return f"{sign}{abs(whole)} {remainder}/{fr.denominator}"
 
 
-def sample_solution(rng: random.Random, cfg: Dict) -> Fraction:
+def sample_solution(rng: random.Random, cfg: dict) -> Fraction:
     """Zieht eine Ziellösung, bevorzugt Brüche."""
     a, b = cfg["coeff_range"]
     dmin, dmax = cfg["denom_range"]
@@ -153,9 +151,9 @@ class Equation:
     sympy_eq: sp.Eq
     text: str
     solution: Fraction
-    excluded: Set[Fraction] = field(default_factory=set)
+    excluded: set[Fraction] = field(default_factory=set)
     template: str = ""
-    params: Dict = field(default_factory=dict)
+    params: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -172,9 +170,9 @@ class Problem:
     """Aufgabe mit Lösungsschritten."""
 
     equation: Equation
-    steps: List[SolveStep]
+    steps: list[SolveStep]
     resamples: int = 0
-    dops: List[str] = field(default_factory=list)
+    dops: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -199,7 +197,7 @@ def numeric_limits_ok(eq: Equation) -> bool:
     expr_together = sp.together(expr)
 
     # Extrahiere alle Nenner
-    denominators: List[int] = []
+    denominators: list[int] = []
     for term in sp.Add.make_args(expr_together):
         _, denom = sp.fraction(term)
         if denom == 1:
@@ -289,7 +287,7 @@ def beautify_equation(
 # ---------------------------------------------------------------------------
 
 
-def build_L1(rng: random.Random, sol: Fraction, cfg: Dict) -> Equation:
+def build_L1(rng: random.Random, sol: Fraction, cfg: dict) -> Equation:
     """Erstellt Level 1 Gleichung: x nur auf einer Seite."""
     mn, mx = cfg["coeff_range"]
 
@@ -350,7 +348,7 @@ def build_L1(rng: random.Random, sol: Fraction, cfg: Dict) -> Equation:
 # ---------------------------------------------------------------------------
 
 
-def build_L2(rng: random.Random, sol: Fraction, cfg: Dict) -> Equation:
+def build_L2(rng: random.Random, sol: Fraction, cfg: dict) -> Equation:
     """Erstellt Level 2 Gleichung: x auf beiden Seiten."""
     mn, mx = cfg["coeff_range"]
 
@@ -381,7 +379,7 @@ def build_L2(rng: random.Random, sol: Fraction, cfg: Dict) -> Equation:
 
 
 def build_L3(
-    rng: random.Random, sol: Fraction, cfg: Dict, pattern_index: int = None
+    rng: random.Random, sol: Fraction, cfg: dict, pattern_index: int = None
 ) -> Equation:
     """Erstellt Level 3 Gleichung: Eine Klammer.
 
@@ -472,7 +470,7 @@ def build_L3(
 # ---------------------------------------------------------------------------
 
 
-def build_L4(rng: random.Random, sol: Fraction, cfg: Dict) -> Equation:
+def build_L4(rng: random.Random, sol: Fraction, cfg: dict) -> Equation:
     """Erstellt Level 4 Gleichung: Gemischte Klammern."""
     # Kleinere Bereiche für komplexere Gleichungen
     attempts = 0
@@ -503,8 +501,14 @@ def build_L4(rng: random.Random, sol: Fraction, cfg: Dict) -> Equation:
                 # Formatierung für mixed complexity
                 if cfg.get("visual_complexity", "mixed") == "mixed":
                     # Implizites Mal vor Klammern
-                    lhs_str = f"{a}({sympy_to_text(m * x + n, 'mixed')}) + {b} - ({sympy_to_text(c * x + d, 'mixed')})"
-                    rhs_str = f"{p} - ({sympy_to_text(q * x + r, 'mixed')}) + {s}({sympy_to_text(t * x + u, 'mixed')})"
+                    lhs_str = (
+                        f"{a}({sympy_to_text(m * x + n, 'mixed')}) + {b} - "
+                        f"({sympy_to_text(c * x + d, 'mixed')})"
+                    )
+                    rhs_str = (
+                        f"{p} - ({sympy_to_text(q * x + r, 'mixed')}) + "
+                        f"{s}({sympy_to_text(t * x + u, 'mixed')})"
+                    )
                     text = f"{lhs_str} = {rhs_str}".replace("+ -", "- ")
                 else:
                     text = beautify_equation(
@@ -528,7 +532,7 @@ def build_L4(rng: random.Random, sol: Fraction, cfg: Dict) -> Equation:
 # ---------------------------------------------------------------------------
 
 
-def build_L5(rng: random.Random, sol: Fraction, cfg: Dict) -> Equation:
+def build_L5(rng: random.Random, sol: Fraction, cfg: dict) -> Equation:
     """Erstellt Level 5 Gleichung: Bruchgleichungen."""
     variant = rng.choice(["simple", "two_fracs", "cross"])
 
@@ -669,9 +673,9 @@ def canonical_key(eq: Equation) -> str:
 # ---------------------------------------------------------------------------
 
 
-def solve_steps(eq: Equation, cfg: Dict) -> List[SolveStep]:
+def solve_steps(eq: Equation, cfg: dict) -> list[SolveStep]:
     """Erzeugt Lösungsschritte für eine Gleichung."""
-    steps: List[SolveStep] = []
+    steps: list[SolveStep] = []
 
     # Schritt 1: Ausgangsgleichung
     steps.append(SolveStep("Ausgangsgleichung", eq.sympy_eq.lhs, eq.sympy_eq.rhs))
@@ -755,16 +759,16 @@ def solve_steps(eq: Equation, cfg: Dict) -> List[SolveStep]:
 # ---------------------------------------------------------------------------
 
 
-def generate_equations(cfg: Dict) -> List[Problem]:
+def generate_equations(cfg: dict) -> list[Problem]:
     """Generiert alle Gleichungen gemäß Konfiguration."""
     rng = random.Random(cfg["seed"])
-    problems: List[Problem] = []
-    seen_keys: Set[str] = set()
+    problems: list[Problem] = []
+    seen_keys: set[str] = set()
     max_resamples = cfg.get("max_resamples", MAX_RESAMPLES)
     strict = cfg.get("strict_limits", True)
 
     # Level 1
-    for i in range(cfg["counts"]["L1"]):
+    for _ in range(cfg["counts"]["L1"]):
         attempts = 0
         while attempts < max_resamples:
             sol = sample_solution(rng, cfg)
@@ -788,7 +792,7 @@ def generate_equations(cfg: Dict) -> List[Problem]:
             attempts += 1
 
     # Level 2
-    for i in range(cfg["counts"]["L2"]):
+    for _ in range(cfg["counts"]["L2"]):
         attempts = 0
         while attempts < max_resamples:
             sol = sample_solution(rng, cfg)
@@ -813,11 +817,11 @@ def generate_equations(cfg: Dict) -> List[Problem]:
 
     # Level 3 - genau je 2× plus, minus, times
     patterns = ["plus", "plus", "minus", "minus", "times", "times"]
-    for i, pattern in enumerate(patterns[: cfg["counts"]["L3"]]):
+    for idx, _pattern in enumerate(patterns[: cfg["counts"]["L3"]]):
         attempts = 0
         while attempts < max_resamples:
             sol = sample_solution(rng, cfg)
-            eq = build_L3(rng, sol, cfg, i)
+            eq = build_L3(rng, sol, cfg, idx)
 
             limits_ok = numeric_limits_ok(eq) if strict else True
             if validate(eq) and limits_ok:
@@ -837,7 +841,7 @@ def generate_equations(cfg: Dict) -> List[Problem]:
             attempts += 1
 
     # Level 4
-    for i in range(cfg["counts"]["L4"]):
+    for _ in range(cfg["counts"]["L4"]):
         attempts = 0
         while attempts < max_resamples:
             sol = sample_solution(rng, cfg)
@@ -861,7 +865,7 @@ def generate_equations(cfg: Dict) -> List[Problem]:
             attempts += 1
 
     # Level 5
-    for i in range(cfg["counts"]["L5"]):
+    for _ in range(cfg["counts"]["L5"]):
         attempts = 0
         while attempts < max_resamples:
             sol = sample_solution(rng, cfg)
@@ -892,7 +896,7 @@ def generate_equations(cfg: Dict) -> List[Problem]:
 # ---------------------------------------------------------------------------
 
 
-def render_arbeitsblatt(problems: List[Problem], filename: str):
+def render_arbeitsblatt(problems: list[Problem], filename: str):
     """Erstellt das Arbeitsblatt."""
     doc = Document()
     doc.add_heading("Lineare Gleichungen – Arbeitsblatt", level=1)
@@ -927,7 +931,7 @@ def render_arbeitsblatt(problems: List[Problem], filename: str):
     doc.save(filename)
 
 
-def render_loesungsblatt(problems: List[Problem], filename: str, cfg: Dict):
+def render_loesungsblatt(problems: list[Problem], filename: str, cfg: dict):
     """Erstellt das Lösungsblatt."""
     doc = Document()
     doc.add_heading("Lineare Gleichungen – Lösungsblatt", level=1)

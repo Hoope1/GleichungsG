@@ -139,16 +139,19 @@ DEFAULT_CONFIG = {
 ## Tests
 
 ```bash
-# Alle Tests ausführen
-pytest
+# Alle Tests mit Coverage ausführen (selektiv via testmon)
+pytest --testmon --cov=. --cov-report=xml
+
+# Diff-Coverage (geänderte Zeilen ≥90 %)
+diff-cover coverage.xml --compare-branch origin/main --fail-under=90
 
 # Einzelne Tests
 pytest test_numeric_limits.py
 pytest test_l1_solution.py
 
 # Code-Qualität prüfen
-python -m ruff check .
 python -m ruff format --check .
+python -m ruff check .
 ```
 
 ## Dateien
