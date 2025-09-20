@@ -17,6 +17,7 @@ from fractions import Fraction
 import sympy as sp
 from docx import Document
 from docx.shared import Pt
+from sympy.polys.polyerrors import PolynomialError
 
 x = sp.Symbol("x")
 
@@ -51,22 +52,21 @@ def nice_frac(fr: Fraction) -> str:
 
 
 def fraction_to_mixed(fr: Fraction) -> str:
-    """Konvertiert Bruch in gemischte Zahl (für positive und negative)."""
+    """Konvertiert einen Bruch in eine gemischte Zahl."""
+
     if fr.denominator == 1:
         return str(fr.numerator)
 
-    whole = fr.numerator // fr.denominator
-    remainder = abs(fr.numerator) - abs(whole) * fr.denominator
+    sign = "-" if fr < 0 else ""
+    whole, remainder = divmod(abs(fr.numerator), fr.denominator)
 
     if remainder == 0:
-        return str(whole)
+        return f"{sign}{whole}"
 
     if whole == 0:
         return nice_frac(fr)
 
-    # Gemischte Zahl
-    sign = "-" if fr < 0 else ""
-    return f"{sign}{abs(whole)} {remainder}/{fr.denominator}"
+    return f"{sign}{whole} {remainder}/{fr.denominator}"
 
 
 def sample_solution(rng: random.Random, cfg: dict) -> Fraction:
@@ -99,29 +99,29 @@ def sample_solution(rng: random.Random, cfg: dict) -> Fraction:
 
 
 def sympy_to_text(expr: sp.Expr, visual_complexity: str = "mixed") -> str:
-    """Konvertiert SymPy-Ausdruck in lesbaren Text mit korrekter Formatierung."""
-    s = str(expr)
+    """Konvertiert einen SymPy-Ausdruck in lesbaren Text."""
+
+    text = sp.sstr(expr)
 
     if visual_complexity == "mixed":
-        # Implizites Mal (kein * Zeichen)
-        s = s.replace("*x", "x")
-        s = s.replace("*", "")
-        s = s.replace(" 1*x", " x")
-        s = s.replace("-1*x", "-x")
-        s = s.replace("(1)*x", "x")
-        s = s.replace("(-1)*x", "-x")
-    else:  # clean
-        s = s.replace("*", "·")
+        # Entferne Faktoren ±1 vor Symbolen/Klammern.
+        text = re.sub(r"(?<![\w])1\*(?=[A-Za-z(])", "", text)
+        text = re.sub(r"(?<![\w])-1\*(?=[A-Za-z(])", "-", text)
 
-    # Aufräumen
-    s = s.replace("+ -", "- ")
-    s = s.replace("- -", "+ ")
-    s = s.replace("  ", " ")
+        # Implizites Mal nur dort, wo es mathematisch eindeutig ist.
+        text = re.sub(r"(?<=\d)\*(?=[A-Za-z(])", "", text)
+        text = re.sub(r"(?<=\))\*(?=[A-Za-z(])", "", text)
+        text = re.sub(r"(?<=[A-Za-z])\*(?=\()", "", text)
+    else:
+        text = text.replace("*", "·")
 
-    # SymPy Rational Darstellung korrigieren
-    s = re.sub(r"Rational\((-?\d+),\s*(\d+)\)", r"\1/\2", s)
+    text = re.sub(r"\s+", " ", text)
+    text = text.replace("+ -", "- ")
+    text = text.replace("- -", "+ ")
 
-    return s.strip()
+    text = re.sub(r"Rational\((-?\d+),\s*(\d+)\)", r"\1/\2", text)
+
+    return text.strip()
 
 
 def _fraction_ok(fr: Fraction) -> bool:
@@ -135,6 +135,38 @@ def _expr_ok(expr: sp.Expr) -> bool:
         fr = Fraction(int(atom.p), int(atom.q))
         if not _fraction_ok(fr):
             return False
+    return True
+
+
+def _sympy_to_fraction(value: sp.Rational | int) -> Fraction:
+    """Konvertiert einen SymPy-Wert in ``Fraction``."""
+
+    rational = sp.Rational(value)
+    return Fraction(int(rational.p), int(rational.q))
+
+
+def _coefficients_within_limits(expr: sp.Expr) -> bool:
+    """Prüft, ob alle Koeffizienten eines Polynoms im Limit liegen."""
+
+    if expr == 0:
+        return True
+
+    try:
+        poly = sp.Poly(expr, x)
+    except PolynomialError:
+        return False
+
+    for coeff in poly.all_coeffs():
+        if coeff.free_symbols:
+            return False
+
+        rationals = coeff.atoms(sp.Rational)
+        if not rationals:
+            continue
+
+        for atom in rationals:
+            if not _fraction_ok(_sympy_to_fraction(atom)):
+                return False
     return True
 
 
@@ -192,66 +224,60 @@ def numeric_limits_ok(eq: Equation) -> bool:
     if not _expr_ok(lhs_exp) or not _expr_ok(rhs_exp):
         return False
 
-    # Prüfe LCM
-    expr = eq.sympy_eq.lhs - eq.sympy_eq.rhs
-    expr_together = sp.together(expr)
+    expr = sp.together(eq.sympy_eq.lhs - eq.sympy_eq.rhs)
 
-    # Extrahiere alle Nenner
     denominators: list[int] = []
-    for term in sp.Add.make_args(expr_together):
+    for term in sp.Add.make_args(expr):
         _, denom = sp.fraction(term)
         if denom == 1:
             continue
 
-        # Zerlege den Nenner in numerischen Faktor und symbolischen Rest.
         coeff, rest = sp.factor(denom).as_coeff_Mul()
         coeff = sp.Rational(coeff)
-        num, den = coeff.as_numer_denom()
+        num_coeff, den_coeff = coeff.as_numer_denom()
 
-        # Sammle numerischen Faktor, falls vorhanden.
-        if abs(num) != 1:
-            denominators.append(abs(int(num)))
-        if den != 1:
-            denominators.append(int(den))
+        if abs(num_coeff) != 1:
+            denominators.append(abs(int(num_coeff)))
+        if den_coeff != 1:
+            denominators.append(int(den_coeff))
 
-        # Falls der symbolische Rest keine Variablen enthält, ist er rein numerisch
-        # und kann ebenfalls in das kgV einfließen.
         if not rest.free_symbols and rest != 1:
             try:
                 denominators.append(abs(int(rest)))
             except Exception:  # pragma: no cover - sollte nicht passieren
                 pass
 
+    num, den = sp.fraction(expr)
+    num = sp.expand(num)
+    den = sp.expand(den)
+
+    num_num, num_den = sp.fraction(num)
+    if num_den != 1:
+        try:
+            denominators.append(abs(int(num_den)))
+        except Exception:  # pragma: no cover - sollte nicht passieren
+            pass
+        num = sp.expand(num_num)
+        den = sp.expand(den * num_den)
+
+    den_num, den_den = sp.fraction(den)
+    if den_den != 1:
+        try:
+            denominators.append(abs(int(den_den)))
+        except Exception:  # pragma: no cover - sollte nicht passieren
+            pass
+        den = sp.expand(den_num)
+
+    if not _coefficients_within_limits(num):
+        return False
+    if den != 1 and not _coefficients_within_limits(den):
+        return False
+
     if denominators:
         lcm_val = denominators[0]
-        for d in denominators[1:]:
-            lcm_val = math.lcm(lcm_val, d)
+        for value in denominators[1:]:
+            lcm_val = math.lcm(lcm_val, value)
         if lcm_val > MAX_ABS:
-            return False
-
-    # Prüfe finale Koeffizienten nach Vereinfachung
-    expr_simplified = sp.expand(sp.together(expr))
-    num, den = sp.fraction(expr_simplified)
-    num = sp.expand(num)
-    if num.has(x):
-        poly = sp.Poly(num, x)
-        coeffs = poly.all_coeffs()
-        for c in coeffs:
-            if abs(float(c)) > MAX_ABS:
-                return False
-    else:
-        if abs(float(num)) > MAX_ABS:
-            return False
-
-    if den != 1:
-        coeff, rest = sp.factor(den).as_coeff_Mul()
-        coeff = sp.Rational(coeff)
-        num_c, den_c = coeff.as_numer_denom()
-        if abs(num_c) > 1 and abs(float(num_c)) > MAX_ABS:
-            return False
-        if den_c != 1 and den_c > MAX_ABS:
-            return False
-        if not rest.free_symbols and rest != 1 and abs(float(rest)) > MAX_ABS:
             return False
 
     return True
@@ -635,30 +661,25 @@ def build_L5(rng: random.Random, sol: Fraction, cfg: dict) -> Equation:
 def validate(eq: Equation) -> bool:
     """Validiert eine Gleichung."""
     try:
-        # Löse die Gleichung
         solutions = sp.solve(eq.sympy_eq, x)
-
-        # Muss genau eine Lösung haben
-        if len(solutions) != 1:
-            return False
-
-        # Lösung muss mit Ziellösung übereinstimmen
-        sol_sympy = solutions[0]
-        sol_frac = Fraction(float(sol_sympy))
-
-        if abs(sol_frac - eq.solution) > Fraction(
-            1, 1000
-        ):  # Toleranz für Rundungsfehler
-            return False
-
-        # Lösung darf kein Ausschlusswert sein
-        for excl in eq.excluded:
-            if abs(eq.solution - excl) < Fraction(1, 1000):
-                return False
-
-        return True
     except Exception:
         return False
+
+    if len(solutions) != 1:
+        return False
+
+    sol_sympy = sp.nsimplify(solutions[0])
+    if not sol_sympy.is_rational:
+        return False
+
+    sol_frac = _sympy_to_fraction(sol_sympy)
+    if sol_frac != eq.solution:
+        return False
+
+    if any(sol_frac == excl for excl in eq.excluded):
+        return False
+
+    return True
 
 
 def canonical_key(eq: Equation) -> str:
@@ -701,13 +722,20 @@ def solve_steps(eq: Equation, cfg: dict) -> list[SolveStep]:
     lhs_num, lhs_den = sp.fraction(lhs_together)
     rhs_num, rhs_den = sp.fraction(rhs_together)
 
-    if lhs_den != 1 or rhs_den != 1:
-        lcm = sp.lcm(lhs_den, rhs_den)
+    denominators = [den for den in (lhs_den, rhs_den) if den != 1]
 
-        if abs(float(lcm)) <= MAX_ABS:  # Prüfe Limit
-            lhs = sp.simplify(lhs * lcm)
-            rhs = sp.simplify(rhs * lcm)
-            steps.append(SolveStep(f"Mit Hauptnenner {lcm} multiplizieren", lhs, rhs))
+    if denominators:
+        lcm_expr = denominators[0]
+        for denom in denominators[1:]:
+            lcm_expr = sp.lcm(lcm_expr, denom)
+
+        if _expr_ok(lcm_expr):
+            lhs = sp.simplify(lhs * lcm_expr)
+            rhs = sp.simplify(rhs * lcm_expr)
+            lcm_text = sympy_to_text(lcm_expr, cfg.get("visual_complexity", "mixed"))
+            steps.append(
+                SolveStep(f"Mit Hauptnenner {lcm_text} multiplizieren", lhs, rhs)
+            )
 
     # Schritt 4: Alle Terme auf eine Seite
     expr = sp.expand(lhs - rhs)
@@ -719,36 +747,41 @@ def solve_steps(eq: Equation, cfg: dict) -> list[SolveStep]:
 
     # Schritt 6: Koeffizienten extrahieren und GCD-Normalisierung
     if expr.has(x):
-        poly = sp.Poly(expr, x)
+        poly = sp.Poly(expr, x, domain="QQ")
         coeffs = poly.all_coeffs()
 
         if len(coeffs) >= 2:
-            A = int(coeffs[0])
-            B = int(coeffs[1])
+            a_frac = _sympy_to_fraction(coeffs[0])
+            b_frac = _sympy_to_fraction(coeffs[1])
 
-            # GCD-Normalisierung (NL-3)
-            g = math.gcd(abs(A), abs(B))
+            den_lcm = math.lcm(a_frac.denominator, b_frac.denominator)
+            a_int = a_frac.numerator * (den_lcm // a_frac.denominator)
+            b_int = b_frac.numerator * (den_lcm // b_frac.denominator)
+
+            expr_int = sp.Integer(a_int) * x + sp.Integer(b_int)
+
+            g = math.gcd(abs(a_int), abs(b_int))
             if g > 1:
-                A //= g
-                B //= g
+                a_int //= g
+                b_int //= g
+                expr_int = sp.Integer(a_int) * x + sp.Integer(b_int)
                 steps.append(
                     SolveStep(
-                        f"Durch gemeinsamen Teiler {g} kürzen", A * x + B, sp.Integer(0)
+                        f"Durch gemeinsamen Teiler {g} kürzen", expr_int, sp.Integer(0)
                     )
                 )
 
-            # Schritt 7: Lösen
-            if A != 0:
-                sol = sp.Rational(-B, A)
-                steps.append(SolveStep(f"Durch {A} teilen", x, sol))
+            if a_int != 0:
+                sol_frac = Fraction(-b_int, a_int)
+                sol_sympy = sp.Rational(sol_frac.numerator, sol_frac.denominator)
+                steps.append(SolveStep(f"Durch {a_int} teilen", x, sol_sympy))
 
-                # Schritt 8: Gemischte Zahl (falls gewünscht)
                 if cfg.get("solutions", {}).get("improper_and_mixed", True):
-                    if sol.q != 1:  # Ist ein Bruch
-                        mixed = fraction_to_mixed(Fraction(int(sol.p), int(sol.q)))
-                        if mixed != str(sol):
+                    if sol_frac.denominator != 1:
+                        mixed = fraction_to_mixed(sol_frac)
+                        if mixed != nice_frac(sol_frac):
                             steps.append(
-                                SolveStep(f"Als gemischte Zahl: {mixed}", x, sol)
+                                SolveStep(f"Als gemischte Zahl: {mixed}", x, sol_sympy)
                             )
 
     return steps
@@ -767,126 +800,67 @@ def generate_equations(cfg: dict) -> list[Problem]:
     max_resamples = cfg.get("max_resamples", MAX_RESAMPLES)
     strict = cfg.get("strict_limits", True)
 
-    # Level 1
+    def try_register(eq: Equation, attempts: int) -> bool:
+        if strict and not numeric_limits_ok(eq):
+            return False
+        if not validate(eq):
+            return False
+
+        key = canonical_key(eq)
+        if key in seen_keys:
+            return False
+
+        seen_keys.add(key)
+        steps = solve_steps(eq, cfg)
+        problems.append(
+            Problem(eq, steps, resamples=attempts, dops=eq.params.get("dops", []))
+        )
+        return True
+
+    def require_success(level: str) -> None:
+        raise RuntimeError(
+            f"Keine gültige Gleichung für Level {level} nach {max_resamples} Versuchen."
+        )
+
     for _ in range(cfg["counts"]["L1"]):
-        attempts = 0
-        while attempts < max_resamples:
+        for attempts in range(max_resamples):
             sol = sample_solution(rng, cfg)
-            eq = build_L1(rng, sol, cfg)
+            if try_register(build_L1(rng, sol, cfg), attempts):
+                break
+        else:
+            require_success("L1")
 
-            limits_ok = numeric_limits_ok(eq) if strict else True
-            if validate(eq) and limits_ok:
-                key = canonical_key(eq)
-                if key not in seen_keys:
-                    seen_keys.add(key)
-                    steps = solve_steps(eq, cfg)
-                    problems.append(
-                        Problem(
-                            eq,
-                            steps,
-                            resamples=attempts,
-                            dops=eq.params.get("dops", []),
-                        )
-                    )
-                    break
-            attempts += 1
-
-    # Level 2
     for _ in range(cfg["counts"]["L2"]):
-        attempts = 0
-        while attempts < max_resamples:
+        for attempts in range(max_resamples):
             sol = sample_solution(rng, cfg)
-            eq = build_L2(rng, sol, cfg)
+            if try_register(build_L2(rng, sol, cfg), attempts):
+                break
+        else:
+            require_success("L2")
 
-            limits_ok = numeric_limits_ok(eq) if strict else True
-            if validate(eq) and limits_ok:
-                key = canonical_key(eq)
-                if key not in seen_keys:
-                    seen_keys.add(key)
-                    steps = solve_steps(eq, cfg)
-                    problems.append(
-                        Problem(
-                            eq,
-                            steps,
-                            resamples=attempts,
-                            dops=eq.params.get("dops", []),
-                        )
-                    )
-                    break
-            attempts += 1
-
-    # Level 3 - genau je 2× plus, minus, times
-    patterns = ["plus", "plus", "minus", "minus", "times", "times"]
-    for idx, _pattern in enumerate(patterns[: cfg["counts"]["L3"]]):
-        attempts = 0
-        while attempts < max_resamples:
+    for idx in range(cfg["counts"]["L3"]):
+        for attempts in range(max_resamples):
             sol = sample_solution(rng, cfg)
-            eq = build_L3(rng, sol, cfg, idx)
+            if try_register(build_L3(rng, sol, cfg, idx), attempts):
+                break
+        else:
+            require_success("L3")
 
-            limits_ok = numeric_limits_ok(eq) if strict else True
-            if validate(eq) and limits_ok:
-                key = canonical_key(eq)
-                if key not in seen_keys:
-                    seen_keys.add(key)
-                    steps = solve_steps(eq, cfg)
-                    problems.append(
-                        Problem(
-                            eq,
-                            steps,
-                            resamples=attempts,
-                            dops=eq.params.get("dops", []),
-                        )
-                    )
-                    break
-            attempts += 1
-
-    # Level 4
     for _ in range(cfg["counts"]["L4"]):
-        attempts = 0
-        while attempts < max_resamples:
+        for attempts in range(max_resamples):
             sol = sample_solution(rng, cfg)
-            eq = build_L4(rng, sol, cfg)
+            if try_register(build_L4(rng, sol, cfg), attempts):
+                break
+        else:
+            require_success("L4")
 
-            limits_ok = numeric_limits_ok(eq) if strict else True
-            if validate(eq) and limits_ok:
-                key = canonical_key(eq)
-                if key not in seen_keys:
-                    seen_keys.add(key)
-                    steps = solve_steps(eq, cfg)
-                    problems.append(
-                        Problem(
-                            eq,
-                            steps,
-                            resamples=attempts,
-                            dops=eq.params.get("dops", []),
-                        )
-                    )
-                    break
-            attempts += 1
-
-    # Level 5
     for _ in range(cfg["counts"]["L5"]):
-        attempts = 0
-        while attempts < max_resamples:
+        for attempts in range(max_resamples):
             sol = sample_solution(rng, cfg)
-            eq = build_L5(rng, sol, cfg)
-
-            limits_ok = numeric_limits_ok(eq) if strict else True
-            if validate(eq) and limits_ok:
-                key = canonical_key(eq)
-                if key not in seen_keys:
-                    seen_keys.add(key)
-                    steps = solve_steps(eq, cfg)
-                    problems.append(
-                        Problem(
-                            eq,
-                            steps,
-                            resamples=attempts,
-                            dops=eq.params.get("dops", []),
-                        )
-                    )
-                    break
-            attempts += 1
+            if try_register(build_L5(rng, sol, cfg), attempts):
+                break
+        else:
+            require_success("L5")
 
     return problems
 
